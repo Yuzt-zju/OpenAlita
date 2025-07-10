@@ -1,0 +1,36 @@
+[
+  {
+    "name": "calculate_additional_cost_per_file",
+    "description": "Calculates the average additional cost per file to upgrade to the minimum plan accommodating all files. Query format must match the following regex patterns to extract all required fields:\n- Uploaded files: 'uploaded (\\d+) equally sized files' (captures X as the number of uploaded files)\n- Over limit: '(\\d+)GB over the limit' (captures Y as the GB over the limit)\n- Remaining files: '(\\d+) more files' (captures Z as the number of files to be uploaded)\nAn example query: 'I have the Standard plan and uploaded 100 equally sized files resulting in 20GB over the limit. I plan to upload 50 more files.'",
+    "function": null,
+    "metadata": {
+      "name": "calculate_additional_cost_per_file",
+      "description": "Calculates the average additional cost per file to upgrade to the minimum plan accommodating all files. Query format must match the following regex patterns to extract all required fields:\n- Uploaded files: 'uploaded (\\d+) equally sized files' (captures X as the number of uploaded files)\n- Over limit: '(\\d+)GB over the limit' (captures Y as the GB over the limit)\n- Remaining files: '(\\d+) more files' (captures Z as the number of files to be uploaded)\nAn example query: 'I have the Standard plan and uploaded 100 equally sized files resulting in 20GB over the limit. I plan to upload 50 more files.'",
+      "args": "query=\"\"",
+      "returns": "processed result",
+      "requires": "re, math"
+    },
+    "script_content": "import re\nimport math\n\ndef calculate_additional_cost_per_file(query=\"\"):\n    try:\n        # Extract relevant details from query using regex\n        overage_match = re.search(r\"(\\d+)GB over the limit\", query)\n        uploaded_files_match = re.search(r\"uploaded (\\d+) equally sized files\", query)\n        remaining_files_match = re.search(r\"(\\d+) more files\", query)\n\n        if not (overage_match and uploaded_files_match and remaining_files_match):\n            return \"Error: Query must contain 'X uploaded files', 'Y GB over the limit', and 'Z more files'.\"\n\n        overage_gb = int(overage_match.group(1))\n        uploaded_files = int(uploaded_files_match.group(1))\n        remaining_files = int(remaining_files_match.group(1))\n\n        # Plan details\n        plans = {\"Standard\": {\"limit_tb\": 2, \"price\": 9.99}, \"Plus\": {\"limit_tb\": 10, \"price\": 19.99}, \"Premium\": {\"limit_tb\": 50, \"price\": 39.99}}\n        current_plan = \"Standard\"  # Assume Standard plan for baseline\n\n        # Calculate file size and total storage requirements\n        file_size_gb = overage_gb / uploaded_files\n        total_files = uploaded_files + remaining_files\n        total_storage_gb = total_files * file_size_gb\n        total_storage_tb = total_storage_gb / 1024\n\n        # Find required plan\n        for plan_name, plan_details in plans.items():\n            if total_storage_tb <= plan_details[\"limit_tb\"]:\n                upgrade_cost = plan_details[\"price\"] - plans[current_plan][\"price\"]\n                break\n        else:\n            return \"Error: No plan can accommodate the total storage.\"\n\n        # Calculate and return average additional cost per file\n        additional_cost_per_file = upgrade_cost / total_files\n        return f\"{additional_cost_per_file:.2f}\"\n\n    except Exception as e:\n        return f\"Error: {str(e)}\"\n",
+    "created_at": "2025-07-07T11:39:41.728281",
+    "usage_count": 18,
+    "last_used": "2025-07-07T15:10:11.943121",
+    "optimized": true
+  },
+  {
+    "name": "extract_text_from_image",
+    "description": "Extracts text from a provided image for OCR purposes. This tool requires a file path to the image or a binary image input. Query format must match the fields:\n- image_path: 'path/to/image.jpg' (providing the file path to the image)\nFor example: '{\"image_path\": \"path/to/image.jpg\"}'.",
+    "function": null,
+    "metadata": {
+      "name": "extract_text_from_image",
+      "description": "Extracts text from a provided image for OCR purposes. This tool requires a file path to the image or a binary image input. Query format must match the fields:\n- image_path: 'path/to/image.jpg' (providing the file path to the image)\nFor example: '{\"image_path\": \"path/to/image.jpg\"}'.",
+      "args": "query=\"\"",
+      "returns": "processed result",
+      "requires": "none"
+    },
+    "script_content": "# Placeholder script content. Actual OCR text extraction not implemented.",
+    "created_at": "2025-07-07T14:57:09.928532",
+    "usage_count": 2,
+    "last_used": "2025-07-07T15:10:07.692391",
+    "optimized": true
+  }
+]

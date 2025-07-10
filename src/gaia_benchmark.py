@@ -5,18 +5,33 @@ GAIA Benchmark CLI Runner for Open-Alita
 Simple command-line interface for running GAIA benchmark tests.
 """
 
+import re
 import sys
 import os
 import argparse
 import json
 import time
 from pathlib import Path
-
+from datetime import datetime
 # Add src to path
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_dir)
 
 from agent.gaia_agent import GAIAAgent, GAIAQuestion
+def save_trajectory_to_history(task_id: str, trajectory: str):
+    os.makedirs('history', exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"history/{task_id}_trajectory.txt"
+    with open(filename, 'w+', encoding='utf-8') as f:
+        f.write(trajectory)
+    return filename
+
+def save_agent_io_log(task_id: str, agent_io_log_json: str):
+    os.makedirs('history', exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"history/{task_id}_agent_io_log_{timestamp}.json"
+    with open(filename, 'w', encoding='utf-8') as f:
+        f.write(agent_io_log_json)
 
 def load_existing_submission(submission_file: str) -> set:
     """Load existing task IDs from submission file to enable resuming"""
@@ -93,7 +108,7 @@ def main():
     processed_count = 0
     skipped_count = 0
     correct_answers = 0  # Track correct answers for real-time accuracy
-    
+    odd_count = 0
     try:
         for result in agent.run_gaia_benchmark(args.jsonl_file, args.max_questions, args.verbose):
             if "error" in result:
@@ -124,7 +139,11 @@ def main():
             else:
                 # Individual question result
                 task_id = result['task_id']
-                
+                filename = save_trajectory_to_history(task_id, result['full_response'])
+                if odd_count%2 == 0:
+                    from tool_registry_optimizer import optimize_tool_registry
+                    print("Optimizing tool registry...")
+                    optimize_tool_registry("mcp_tools_registry.json", "mcp_tools_registry.json", filename)
                 # Skip if already processed and resuming
                 if args.resume and task_id in existing_tasks:
                     skipped_count += 1
@@ -167,7 +186,7 @@ def main():
                     print(f"   Level: {result['level']}")
                     print(f"   Full Response: {result['full_response'][:500]}...")
                     print()
-    
+            odd_count += 1
     except KeyboardInterrupt:
         print("\n⚠️  Benchmark interrupted by user")
         print(f"📊 Progress saved: {processed_count} questions processed")

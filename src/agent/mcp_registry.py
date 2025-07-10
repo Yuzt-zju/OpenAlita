@@ -24,6 +24,7 @@ class MCPTool:
     created_at: datetime
     usage_count: int = 0
     last_used: Optional[datetime] = None
+    optimized: bool = False
     
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary for serialization (excluding function)"""
@@ -209,6 +210,7 @@ class MCPRegistry:
                 name = tool_data.get('name')
                 script_content = tool_data.get('script_content', '')
                 metadata = tool_data.get('metadata', {})
+                optimized = tool_data.get('optimized', False)
 
                 if name and script_content:
                     function, _ = mcp_factory.create_mcp_from_script(name, script_content)
@@ -221,7 +223,8 @@ class MCPRegistry:
                             script_content=script_content,
                             created_at=datetime.fromisoformat(tool_data.get('created_at', datetime.now().isoformat())),
                             usage_count=tool_data.get('usage_count', 0),
-                            last_used=datetime.fromisoformat(tool_data.get('last_used')) if tool_data.get('last_used') else None
+                            last_used=datetime.fromisoformat(tool_data.get('last_used')) if tool_data.get('last_used') else None,
+                            optimized=optimized
                         )
                         self.tools[name] = tool
                         logger.info(f"Loaded and recreated tool: {name}")

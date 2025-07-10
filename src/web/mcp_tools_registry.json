@@ -1,0 +1,18 @@
+[
+  {
+    "name": "solve_quadratic_equation",
+    "description": "Solves a quadratic equation of the form ax\u00b2 + bx + c = 0 using the quadratic formula.",
+    "function": null,
+    "metadata": {
+      "name": "solve_quadratic_equation",
+      "description": "Solves a quadratic equation of the form ax\u00b2 + bx + c = 0 using the quadratic formula.",
+      "args": "query=\"\"",
+      "returns": "processed result",
+      "requires": "re, json, math"
+    },
+    "script_content": "Here is the implementation of the `solve_quadratic_equation` function. It is designed to extract the coefficients of a quadratic equation from the query, solve the equation using the quadratic formula, and return the roots.\n\n```python\nimport re\nimport math\n\n# MCP Name: solve_quadratic_equation\n# Description: Solves a quadratic equation of the form ax\u00b2 + bx + c = 0 using the quadratic formula.\n# Arguments: query (string) - the user query to process\n# Returns: processed result\n# Requires: re, json, math\n\ndef solve_quadratic_equation(query=\"\"):\n    try:\n        # Extract coefficients a, b, and c from the query using regex\n        match = re.search(r\"x\\^2\\s*([\\+\\-]\\s*\\d+)?x\\s*([\\+\\-]\\s*\\d+)?\", query.replace(\" \", \"\"))\n        if not match:\n            return \"Error: Could not parse the quadratic equation from the query.\"\n        \n        # Parse coefficients\n        a = 1  # Coefficient of x\u00b2 is assumed to be 1 if not explicitly mentioned\n        b = int(match.group(1).replace(\" \", \"\")) if match.group(1) else 0\n        c = int(match.group(2).replace(\" \", \"\")) if match.group(2) else 0\n\n        # Calculate the discriminant\n        discriminant = b**2 - 4*a*c\n\n        # Determine the roots based on the discriminant\n        if discriminant > 0:\n            root1 = (-b + math.sqrt(discriminant)) / (2 * a)\n            root2 = (-b - math.sqrt(discriminant)) / (2 * a)\n            result = f\"The roots are real and distinct: {root1} and {root2}\"\n        elif discriminant == 0:\n            root = -b / (2 * a)\n            result = f\"The roots are real and identical: {root}\"\n        else:\n            real_part = -b / (2 * a)\n            imaginary_part = math.sqrt(-discriminant) / (2 * a)\n            result = (f\"The roots are complex: {real_part} + {imaginary_part}i and \"\n                      f\"{real_part} - {imaginary_part}i\")\n        \n        return result\n    except Exception as e:\n        return f\"Error: {str(e)}\"\n\n# Example usage\nquery = \"Solve the quadratic equation x^2 + 5x + 6 = 0\"\nprint(solve_quadratic_equation(query))\n```\n\n### Explanation:\n1. **Regex Parsing**:\n   - The function uses a regular expression to extract the coefficients \\( b \\) and \\( c \\) from the query. The coefficient \\( a \\) is assumed to be 1 if not explicitly mentioned.\n\n2. **Quadratic Formula**:\n   - The quadratic formula \\( x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a} \\) is used to calculate the roots.\n   - The discriminant \\( b^2 - 4ac \\) determines the nature of the roots (real and distinct, real and identical, or complex).\n\n3. **Error Handling**:\n   - If the query cannot be parsed or an error occurs during computation, the function returns an error message.\n\n4. **Output**:\n   - The function returns a clear and user-friendly description of the roots.\n\n### Example Output:\nFor the query `\"Solve the quadratic equation x^2 + 5x + 6 = 0\"`, the output will be:\n```\nThe roots are real and distinct: -2.0 and -3.0\n```",
+    "created_at": "2025-07-07T10:53:22.790449",
+    "usage_count": 1,
+    "last_used": "2025-07-07T10:53:30.917808"
+  }
+]
