@@ -44,4 +44,6 @@ dependencies = [
     "bio>=1.8.0",
     "opencv-python>=4.11.0.86",
     "pypdf2>=3.0.1",
+    "pytesseract>=0.3.13",
+    "python-pptx>=1.0.2",
 ]

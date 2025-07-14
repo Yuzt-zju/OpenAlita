@@ -4,12 +4,22 @@ import openai
 import requests
 
 # 1. 读取注册表
-# 跳过已优化的工具
 def load_tools_registry(path):
-    with open(path, 'r', encoding='utf-8') as f:
-        tools = json.load(f)
-        # 只返回未优化的工具
-        return [tool for tool in tools if not tool.get('optimized', False)]
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            content = f.read().strip()
+            if not content:
+                return []
+            tools = json.loads(content)
+            return tools
+    except (json.JSONDecodeError, FileNotFoundError):
+        return []
+
+def separate_tools_by_optimization_status(tools):
+    """将工具分为已优化和未优化两组"""
+    optimized_tools = [tool for tool in tools if tool.get('optimized', False)]
+    unoptimized_tools = [tool for tool in tools if not tool.get('optimized', False)]
+    return optimized_tools, unoptimized_tools
 
 # 2. 构造 prompt
 def build_prompt(tools, trajectory=None):
@@ -67,25 +77,44 @@ def optimize_tools_with_gpt4o(tools, trajectory=None):
         return None
 
 # 4. 保存优化后的注册表
-def save_optimized_registry(tools, path):
+def save_optimized_registry(all_tools, optimized_tools, path):
+    # 合并所有工具：原本已优化的 + 新优化的
+    final_tools = all_tools + optimized_tools
     with open(path, 'w', encoding='utf-8') as f:
-        json.dump(tools, f, ensure_ascii=False, indent=2)
+        json.dump(final_tools, f, ensure_ascii=False, indent=2)
 
-def optimize_tool_registry(src, dst, trajectory_path=None):
-    tools = load_tools_registry(src)
-    if not tools:
+def optimize_tool_registry(src, dst, trajectory_path=None, is_correct=False):
+    # 读取所有工具
+    all_tools = load_tools_registry(src)
+    if not all_tools:
+        print("没有找到工具注册表文件或文件为空。")
+        return False
+    
+    # 分离已优化和未优化的工具
+    optimized_tools, unoptimized_tools = separate_tools_by_optimization_status(all_tools)
+    
+    if not unoptimized_tools:
         print("没有需要优化的工具，已全部完成优化。")
-        return
+        return False
+    
+    print(f"找到 {len(optimized_tools)} 个已优化的工具，{len(unoptimized_tools)} 个需要优化的工具")
+    
     trajectory = None
     if trajectory_path and os.path.exists(trajectory_path):
         with open(trajectory_path, 'r', encoding='utf-8') as f:
             trajectory = f.read()
-    optimized_tools = optimize_tools_with_gpt4o(tools, trajectory)
-    if optimized_tools:
-        save_optimized_registry(optimized_tools, dst)
+    
+    # 只对未优化的工具进行优化
+    newly_optimized_tools = optimize_tools_with_gpt4o(unoptimized_tools, trajectory)
+    if newly_optimized_tools:
+        # 保存所有工具：原本已优化的 + 新优化的
+        save_optimized_registry(optimized_tools, newly_optimized_tools, dst)
         print(f"优化完成，已保存到 {dst}")
+        print(f"总共保存了 {len(optimized_tools) + len(newly_optimized_tools)} 个工具")
+        return True
     else:
         print("未能自动生成优化后的注册表，请检查上面输出。")
+        return False
 
 def main():
     src = "mcp_tools_registry.json"

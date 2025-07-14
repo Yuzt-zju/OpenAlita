@@ -140,11 +140,11 @@ def main():
             else:
                 # Individual question result
                 task_id = result['task_id']
-                filename = save_trajectory_to_history(task_id, result['full_response'])
-                if odd_count%2 == 0:
-                    from tool_registry_optimizer import optimize_tool_registry
-                    print("Optimizing tool registry...")
-                    optimize_tool_registry("mcp_tools_registry.json", "mcp_tools_registry.json", filename)
+                # filename = save_trajectory_to_history(task_id, result['full_response'])
+                # if odd_count%2 == 0:
+                #     from tool_registry_optimizer import optimize_tool_registry
+                #     print("Optimizing tool registry...")
+                #     optimize_tool_registry("mcp_tools_registry.json", "mcp_tools_registry.json", filename)
                 # Skip if already processed and resuming
                 if result.get('skipped', False):
                     skipped_count += 1

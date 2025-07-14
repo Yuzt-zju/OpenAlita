@@ -28,8 +28,16 @@ from .llm_provider import LLMProvider
 from .web_agent import WebAgent
 from .mcp_factory import MCPFactory
 from .langgraph_workflow import LangGraphCoordinator
-
+from datetime import datetime
 logger = logging.getLogger('alita.gaia')
+
+def save_trajectory_to_history(task_id: str, trajectory: str):
+    os.makedirs('history', exist_ok=True)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"history/{task_id}_trajectory.txt"
+    with open(filename, 'w+', encoding='utf-8') as f:
+        f.write(trajectory)
+    return filename
 
 # GAIA System Prompt (exact format from benchmark)
 GAIA_SYSTEM_PROMPT = """You are a general AI assistant. I will ask you a question. Report your thoughts, and finish your answer with the following template: FINAL ANSWER: [YOUR FINAL ANSWER]. YOUR FINAL ANSWER should be a number OR as few words as possible OR a comma separated list of numbers and/or strings. If you are asked for a number, don't use comma to write your number neither use units such as $ or percent sign unless specified otherwise. If you are asked for a string, don't use articles, neither abbreviations (e.g. for cities), and write the digits in plain text unless specified otherwise. If you are asked for a comma separated list, apply the above rules depending of whether the element to put in the list is a number or a string."""
@@ -54,7 +62,7 @@ class GAIAAgent:
         self.mcp_factory = MCPFactory()
         self.langgraph_coordinator = LangGraphCoordinator()
         # self.gaia_files_dir = "gaia_files"
-        self.gaia_files_dir = "/root/OpenAlita/gaia_dataset/2023/validation"
+        self.gaia_files_dir = "/root/workspace/OpenAlita/gaia_files/data/2023/validation"
         logger.info("GAIA Agent initialized successfully")
     
     def _load_file_content(self, file_name: str) -> Optional[str]:
@@ -441,7 +449,7 @@ Provide ONLY the final answer (no explanation, no quotes, just the answer):"""
     def run_gaia_benchmark(self, jsonl_file_path: str, max_questions: Optional[int] = None, verbose: bool = False, skip_tasks: set = ()) -> Generator[Dict[str, Any], None, None]:
         """Run GAIA benchmark on questions from JSONL file"""
         logger.info(f"Starting GAIA benchmark with file: {jsonl_file_path}")
-        
+        refine_tool = True
         questions = self.load_gaia_questions(jsonl_file_path)
         if not questions:
             yield {"error": "No questions loaded from file"}
@@ -455,6 +463,16 @@ Provide ONLY the final answer (no explanation, no quotes, just the answer):"""
         
         for i, question in enumerate(questions, 1):
             logger.info(f"Processing question {i}/{total_questions}: {question.task_id}")
+
+            # 偶数题跳过逻辑
+            if i % 2 == 0 and i > 1:
+                prev_result = last_result
+                if prev_result is not None:
+                    if prev_result.get('is_correct', False) or not prev_result.get('has_tool', True):
+                        if verbose:
+                            print(f"⏭️  Skipping {question.task_id} (even index, previous correct or no tool)")
+                        yield {"task_id": question.task_id, "skipped": True, "reason": "even index, previous correct or no tool"}
+                        continue
 
             # Skip if already processed and resuming
             if question.task_id in skip_tasks:
@@ -493,7 +511,15 @@ Provide ONLY the final answer (no explanation, no quotes, just the answer):"""
                 
                 if is_correct:
                     correct_answers += 1
-            
+
+            has_tool = False
+            if refine_tool:
+                from .tool_registry_optimizer import optimize_tool_registry
+                filename = save_trajectory_to_history(question.task_id, full_response)
+                print("----Optimizing tool registry...----")
+                has_tool = optimize_tool_registry("mcp_tools_registry.json", "mcp_tools_registry.json", filename, is_correct)
+                print("----Optimizing Over!----")
+
             result = {
                 "task_id": question.task_id,
                 "question": question.question,
@@ -501,11 +527,14 @@ Provide ONLY the final answer (no explanation, no quotes, just the answer):"""
                 "actual_answer": final_answer_match,
                 "is_correct": is_correct,
                 "level": question.level,
-                "full_response": full_response
+                "full_response": full_response,
+                "has_tool": has_tool
             }
             
             # Always yield the result for submission file generation
             yield result
+            # 记录上一个问题的结果
+            last_result = result
             
             # Progress update
             accuracy = (correct_answers / i) * 100
